@@ -2,9 +2,19 @@ services:
   - type: web
     name: macro-pulse
     runtime: python
+    plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run dashboard/app.py --server.port $PORT --server.address 0.0.0.0
+    preDeployCommand: python -m ingestion.loader && python -m agent.macro_agent
+    startCommand: python dashboard/serve.py
+    disk:
+      name: macro-pulse-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
+      - key: MACRO_PULSE_DB_PATH
+        value: /data/macro_pulse.db
+      - key: ENABLE_INTERNAL_SCHEDULER
+        value: "true"
       - key: FRED_API_KEY
         sync: false
       - key: ALPHA_VANTAGE_API_KEY

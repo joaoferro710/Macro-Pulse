@@ -59,7 +59,6 @@ def detect_yield_curve_regime() -> dict[str, Any]:
             regime_labels.append("normal")
 
     dataframe = dataframe.assign(regime=regime_labels)
-    current_streak = dataframe.loc[dataframe["regime"] == current_regime].copy()
     latest_date = dataframe.iloc[-1]["date"]
     regime_start = latest_date
 

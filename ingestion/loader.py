@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
@@ -21,7 +22,7 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
-DB_PATH = Path(__file__).resolve().parent.parent / "macro_pulse.db"
+DB_PATH = Path(os.getenv("MACRO_PULSE_DB_PATH", Path(__file__).resolve().parent.parent / "macro_pulse.db"))
 
 FRED_SERIES = {
     "FEDFUNDS": "Federal Funds Rate",

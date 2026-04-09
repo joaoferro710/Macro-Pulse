@@ -100,6 +100,14 @@ Execute:
 pytest tests/ -v
 ```
 
+## Deploy no Render
+
+1. Publique este repositorio no GitHub e acesse https://dashboard.render.com/.
+2. Clique em `New +` > `Blueprint` e conecte o repositorio `macro-pulse`.
+3. Confirme o arquivo `render.yaml` e finalize a criacao do servico web.
+4. No painel do Render, adicione as variaveis `FRED_API_KEY`, `ALPHA_VANTAGE_API_KEY` e `GROQ_API_KEY`.
+5. Dispare o deploy e acompanhe os logs ate a URL publica do Streamlit ficar disponivel.
+
 ## Stack
 
 | Camada | Tecnologia |

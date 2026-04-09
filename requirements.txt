@@ -1,0 +1,14 @@
+duckdb==1.2.0
+pandas==2.2.3
+requests==2.32.3
+python-dotenv==1.0.1
+langchain==0.3.19
+langchain-openai==0.3.6
+openai==1.68.2
+streamlit==1.43.2
+scipy==1.15.2
+numpy==2.2.3
+apscheduler==3.11.0
+pytest==8.3.5
+ruff==0.9.9
+tenacity==9.0.0

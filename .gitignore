@@ -1,0 +1,6 @@
+.env
+macro_pulse.db
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/

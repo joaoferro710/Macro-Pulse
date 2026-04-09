@@ -8,14 +8,15 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import streamlit as st
 from dotenv import load_dotenv
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_groq import ChatGroq
 
+from agent.tools import build_tools
 from analytics.anomaly_detector import analyze_series
 from analytics.regime_detector import get_global_macro_snapshot
-from agent.tools import build_tools
 from ingestion.loader import get_connection, get_series
 
 logging.basicConfig(
@@ -26,30 +27,34 @@ LOGGER = logging.getLogger(__name__)
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 SYSTEM_PROMPT = """
-Você é um analista macroeconômico sênior especializado em mercados emergentes,
-com foco em Brasil e correlações com o ciclo econômico dos EUA.
+Voce e um analista macroeconomico senior especializado em mercados emergentes,
+com foco em Brasil e correlacoes com o ciclo economico dos EUA.
 
-Seu trabalho é gerar briefings econômicos concisos, precisos e acionáveis,
-baseados exclusivamente nos dados fornecidos pelas ferramentas disponíveis.
+Seu trabalho e gerar briefings economicos concisos, precisos e acionaveis,
+baseados exclusivamente nos dados fornecidos pelas ferramentas disponiveis.
 
 Ao gerar um briefing:
 - Sempre cite os valores mais recentes com suas datas
 - Destaque anomalias detectadas e o que elas podem sinalizar
-- Conecte indicadores dos EUA com possíveis impactos no Brasil
-- Seja direto: termine com 2-3 pontos de atenção para a próxima semana
-- Não especule além dos dados disponíveis
-- Use linguagem profissional mas acessível
+- Conecte indicadores dos EUA com possiveis impactos no Brasil
+- Seja direto: termine com 2-3 pontos de atencao para a proxima semana
+- Nao especule alem dos dados disponiveis
+- Use linguagem profissional mas acessivel
 """.strip()
 
 
 def _ensure_groq_api_key() -> str:
-    """Return the configured Groq API key or raise a helpful error."""
+    """Return the Groq API key from st.secrets (cloud) or .env (local)."""
 
     load_dotenv(dotenv_path=ENV_PATH)
     api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY is not configured. Add it to your .env file.")
-    return api_key
+    if api_key:
+        return api_key
+    try:
+        return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
+    raise ValueError("GROQ_API_KEY not found. Set it in .streamlit/secrets.toml or .env.")
 
 
 def initialize_briefings_table() -> None:
@@ -84,10 +89,10 @@ def _build_agent_executor() -> AgentExecutor:
             (
                 "human",
                 (
-                    "Gere um briefing macroeconômico sobre o tópico: {topic}.\n"
+                    "Gere um briefing macroeconomico sobre o topico: {topic}.\n"
                     "Use as ferramentas para buscar dados reais antes de concluir.\n"
                     "O briefing final deve ter entre 220 e 320 palavras.\n"
-                    "Estruture a resposta com 2-3 parágrafos analíticos e feche com 2-3 pontos de atenção.\n"
+                    "Estruture a resposta com 2-3 paragrafos analiticos e feche com 2-3 pontos de atencao.\n"
                     "Mencione pelo menos 3 indicadores com valores reais e datas."
                 ),
             ),
@@ -124,8 +129,7 @@ def _build_supporting_context() -> str:
             continue
         latest = dataframe.iloc[-1]
         indicator_lines.append(
-            f"- {latest['series_name']} ({series_id}): {float(latest['value']):.2f} em "
-            f"{latest['date']}"
+            f"- {latest['series_name']} ({series_id}): {float(latest['value']):.2f} em {latest['date']}"
         )
 
     anomaly_lines: list[str] = []
@@ -137,8 +141,8 @@ def _build_supporting_context() -> str:
         anomaly_lines.append(
             f"- {analysis['series_name']} ({series_id}): "
             f"{analysis['zscore_anomalies']} anomalias por Z-score, "
-            f"{analysis['cusum_changepoints']} mudanças por CUSUM, "
-            f"último valor {analysis['latest_value']:.2f} em {analysis['latest_date']}"
+            f"{analysis['cusum_changepoints']} mudancas por CUSUM, "
+            f"ultimo valor {analysis['latest_value']:.2f} em {analysis['latest_date']}"
         )
 
     snapshot = get_global_macro_snapshot()
@@ -170,19 +174,8 @@ def _ensure_minimum_briefing_quality(content: str) -> str:
     return f"{content.strip()}\n\n{appendix}".strip()
 
 
-def generate_briefing(topic: str = "visão geral") -> str:
-    """Generate and store a macro briefing for the requested topic.
-
-    Parameters
-    ----------
-    topic:
-        Topic that should guide the economic briefing.
-
-    Returns
-    -------
-    str
-        Generated briefing text.
-    """
+def generate_briefing(topic: str = "visao geral") -> str:
+    """Generate and store a macro briefing for the requested topic."""
 
     initialize_briefings_table()
     executor = _build_agent_executor()
@@ -194,13 +187,7 @@ def generate_briefing(topic: str = "visão geral") -> str:
 
 
 def get_latest_briefing() -> dict[str, Any] | None:
-    """Return the latest generated briefing stored in DuckDB.
-
-    Returns
-    -------
-    dict[str, Any] | None
-        Latest briefing row or ``None`` when no briefing exists yet.
-    """
+    """Return the latest generated briefing stored in DuckDB."""
 
     initialize_briefings_table()
     with get_connection() as connection:

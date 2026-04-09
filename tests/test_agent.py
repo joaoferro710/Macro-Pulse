@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
 import duckdb
 import pytest
 
 from agent import macro_agent
+
+
+def _workspace_temp_file(name: str) -> Path:
+    return Path.cwd() / f".test_agent_{name}_{uuid4().hex}.db"
 
 
 class FakeExecutor:
@@ -41,45 +46,51 @@ def _temp_connection_factory(db_path: Path):
 
 
 def test_generate_briefing_saves_to_duckdb(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """generate_briefing should persist the generated content in DuckDB."""
 
-    temp_db = tmp_path / "macro_agent_test.db"
-    monkeypatch.setattr(macro_agent, "get_connection", _temp_connection_factory(temp_db))
-    monkeypatch.setattr(macro_agent, "_build_agent_executor", lambda: FakeExecutor())
-    monkeypatch.setattr(macro_agent, "_ensure_minimum_briefing_quality", lambda content: content)
+    temp_db = _workspace_temp_file("macro_agent_test")
+    try:
+        monkeypatch.setattr(macro_agent, "get_connection", _temp_connection_factory(temp_db))
+        monkeypatch.setattr(macro_agent, "_build_agent_executor", lambda: FakeExecutor())
+        monkeypatch.setattr(macro_agent, "_ensure_minimum_briefing_quality", lambda content: content)
 
-    content = macro_agent.generate_briefing("Brasil")
-    latest = macro_agent.get_latest_briefing()
+        content = macro_agent.generate_briefing("Brasil")
+        latest = macro_agent.get_latest_briefing()
 
-    assert "Federal Funds Rate" in content
-    assert latest is not None
-    assert latest["topic"] == "Brasil"
-    assert "SELIC" in latest["content"]
+        assert "Federal Funds Rate" in content
+        assert latest is not None
+        assert latest["topic"] == "Brasil"
+        assert "SELIC" in latest["content"]
+    finally:
+        temp_db.unlink(missing_ok=True)
 
 
 def test_get_latest_briefing_returns_most_recent(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """get_latest_briefing should return the most recent stored briefing."""
 
-    temp_db = tmp_path / "macro_agent_latest.db"
-    monkeypatch.setattr(macro_agent, "get_connection", _temp_connection_factory(temp_db))
+    temp_db = _workspace_temp_file("macro_agent_latest")
+    try:
+        monkeypatch.setattr(macro_agent, "get_connection", _temp_connection_factory(temp_db))
 
-    macro_agent.initialize_briefings_table()
-    with macro_agent.get_connection() as connection:
-        connection.execute(
-            """
-            INSERT INTO briefings (id, topic, content, generated_at)
-            VALUES
-                ('1', 'antigo', 'briefing antigo', TIMESTAMP '2026-04-08 08:00:00'),
-                ('2', 'novo', 'briefing novo', TIMESTAMP '2026-04-09 08:00:00')
-            """
-        )
+        macro_agent.initialize_briefings_table()
+        with macro_agent.get_connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO briefings (id, topic, content, generated_at)
+                VALUES
+                    ('1', 'antigo', 'briefing antigo', TIMESTAMP '2026-04-08 08:00:00'),
+                    ('2', 'novo', 'briefing novo', TIMESTAMP '2026-04-09 08:00:00')
+                """
+            )
 
-    latest = macro_agent.get_latest_briefing()
+        latest = macro_agent.get_latest_briefing()
 
-    assert latest is not None
-    assert latest["id"] == "2"
-    assert latest["topic"] == "novo"
+        assert latest is not None
+        assert latest["id"] == "2"
+        assert latest["topic"] == "novo"
+    finally:
+        temp_db.unlink(missing_ok=True)

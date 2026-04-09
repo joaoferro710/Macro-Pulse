@@ -11,6 +11,8 @@ from typing import Callable
 
 import duckdb
 import pandas as pd
+import streamlit as st
+from dotenv import load_dotenv
 
 from ingestion.alpha_vantage_client import AlphaVantageAPIError, fetch_equity, fetch_fx
 from ingestion.bcb_client import BCBAPIError, fetch_series as fetch_bcb_series
@@ -22,7 +24,11 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
-DB_PATH = Path(os.getenv("MACRO_PULSE_DB_PATH", Path(__file__).resolve().parent.parent / "macro_pulse.db"))
+MOTHERDUCK_DB = "md:macro_pulse"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DUCKDB_HOME = PROJECT_ROOT / ".duckdb_home"
+ENV_PATH = PROJECT_ROOT / ".env"
+LOCAL_DB_PATH = PROJECT_ROOT / "macro_pulse.db"
 
 FRED_SERIES = {
     "FEDFUNDS": "Federal Funds Rate",
@@ -46,10 +52,108 @@ ALPHA_VANTAGE_SERIES = {
 }
 
 
-def get_connection() -> duckdb.DuckDBPyConnection:
-    """Create and return a connection to the local DuckDB database."""
+def _configure_duckdb_home() -> Path:
+    """Pin DuckDB's writable home inside the project workspace.
 
-    return duckdb.connect(str(DB_PATH))
+    This keeps MotherDuck extensions and local DuckDB state out of the user's
+    profile directory, which is safer for sandboxed runs and Windows setups
+    with restricted permissions.
+    """
+
+    duckdb_home = Path(os.getenv("MACRO_PULSE_DUCKDB_HOME", DUCKDB_HOME)).resolve()
+    duckdb_home.mkdir(parents=True, exist_ok=True)
+    os.environ["HOME"] = str(duckdb_home)
+    os.environ["USERPROFILE"] = str(duckdb_home)
+    return duckdb_home
+
+
+def _storage_mode() -> str:
+    """Return the configured storage mode.
+
+    Supported values:
+    - auto: try MotherDuck first, then fall back to local DuckDB
+    - motherduck: require MotherDuck
+    - local: always use the local DuckDB file
+    """
+
+    return os.getenv("MACRO_PULSE_STORAGE", "auto").strip().lower()
+
+
+def _local_db_path() -> Path:
+    return Path(os.getenv("MACRO_PULSE_LOCAL_DB", LOCAL_DB_PATH)).resolve()
+
+
+def _set_backend_state(kind: str, detail: str | None = None) -> None:
+    os.environ["MACRO_PULSE_ACTIVE_BACKEND"] = kind
+    if detail:
+        os.environ["MACRO_PULSE_BACKEND_DETAIL"] = detail
+    else:
+        os.environ.pop("MACRO_PULSE_BACKEND_DETAIL", None)
+
+
+def get_active_backend() -> dict[str, str | None]:
+    """Expose the last storage backend used by the app."""
+
+    return {
+        "kind": os.getenv("MACRO_PULSE_ACTIVE_BACKEND", "unknown"),
+        "detail": os.getenv("MACRO_PULSE_BACKEND_DETAIL"),
+    }
+
+
+def _get_motherduck_connection() -> duckdb.DuckDBPyConnection:
+    """Return an authenticated MotherDuck connection.
+
+    The token is read from st.secrets in production (Streamlit Cloud)
+    and falls back to the MOTHERDUCK_TOKEN environment variable locally.
+    """
+
+    load_dotenv(dotenv_path=ENV_PATH)
+    token = os.getenv("MOTHERDUCK_TOKEN")
+    if not token:
+        try:
+            token = st.secrets["MOTHERDUCK_TOKEN"]
+        except Exception as exc:
+            raise KeyError(
+                "MOTHERDUCK_TOKEN is not configured. Add it to .streamlit/secrets.toml or .env."
+            ) from exc
+
+    duckdb_home = _configure_duckdb_home()
+    connection_string = f"{MOTHERDUCK_DB}?motherduck_token={token}"
+    connection = duckdb.connect(connection_string, config={"home_directory": str(duckdb_home)})
+    _set_backend_state("motherduck")
+    return connection
+
+
+def _get_local_connection(read_only: bool = False) -> duckdb.DuckDBPyConnection:
+    """Return a project-local DuckDB connection."""
+
+    local_db = _local_db_path()
+    if not local_db.exists():
+        raise FileNotFoundError(
+            f"Local DuckDB file not found at {local_db}. Run the seed or configure MACRO_PULSE_LOCAL_DB."
+        )
+    connection = duckdb.connect(str(local_db), read_only=read_only)
+    detail = f"{local_db} ({'read-only' if read_only else 'read-write'})"
+    _set_backend_state("local", detail)
+    return connection
+
+
+def get_connection(read_only: bool = False) -> duckdb.DuckDBPyConnection:
+    """Return a DuckDB connection using the configured storage strategy."""
+
+    mode = _storage_mode()
+
+    if mode == "local":
+        return _get_local_connection(read_only=read_only)
+
+    if mode == "motherduck":
+        return _get_motherduck_connection()
+
+    try:
+        return _get_motherduck_connection()
+    except Exception as exc:
+        LOGGER.warning("MotherDuck unavailable, falling back to local DuckDB: %s", exc)
+        return _get_local_connection(read_only=read_only)
 
 
 def initialize_db() -> None:
@@ -199,7 +303,7 @@ def get_series(series_id: str, n_periods: int = 60) -> pd.DataFrame:
         ORDER BY date DESC
         LIMIT ?
     """
-    with get_connection() as connection:
+    with get_connection(read_only=True) as connection:
         dataframe = connection.execute(query, [series_id, n_periods]).fetchdf()
     return dataframe.sort_values("date").reset_index(drop=True)
 

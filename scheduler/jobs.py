@@ -32,18 +32,12 @@ def run_briefing_job() -> None:
     """Execute the daily macro briefing job with start and finish logging."""
 
     LOGGER.info("Starting scheduled briefing job.")
-    content = generate_briefing("visão geral")
+    content = generate_briefing("visao geral")
     LOGGER.info("Finished scheduled briefing job. Briefing length=%s words.", len(content.split()))
 
 
 def start_scheduler() -> BackgroundScheduler:
-    """Start the background scheduler and register the daily jobs.
-
-    Returns
-    -------
-    BackgroundScheduler
-        Started scheduler instance configured for Brazil's timezone.
-    """
+    """Start the background scheduler and register the daily jobs."""
 
     scheduler = BackgroundScheduler(timezone=BRAZIL_TZ)
     scheduler.add_job(

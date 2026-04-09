@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+import streamlit as st
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 LOGGER = logging.getLogger(__name__)
@@ -23,12 +24,20 @@ class FREDAPIError(Exception):
 
 
 def _get_api_key() -> str:
-    """Return the configured FRED API key from environment variables."""
+    """Return the configured FRED API key from Streamlit secrets or environment."""
 
     load_dotenv(dotenv_path=ENV_PATH)
     api_key = os.getenv("FRED_API_KEY")
+    if api_key:
+        return api_key
+    try:
+        api_key = st.secrets["FRED_API_KEY"]
+    except Exception:
+        api_key = None
     if not api_key:
-        raise FREDAPIError("FRED_API_KEY is not configured. Add it to your .env file.")
+        raise FREDAPIError(
+            "FRED_API_KEY is not configured. Add it to .streamlit/secrets.toml or .env."
+        )
     return api_key
 
 

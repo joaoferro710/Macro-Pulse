@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+import streamlit as st
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 LOGGER = logging.getLogger(__name__)
@@ -26,13 +27,19 @@ class AlphaVantageAPIError(Exception):
 
 
 def _get_api_key() -> str:
-    """Return the configured Alpha Vantage API key from environment variables."""
+    """Return the configured Alpha Vantage API key from secrets or environment."""
 
     load_dotenv(dotenv_path=ENV_PATH)
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    api_key = os.getenv("ALPHA_VANTAGE_KEY") or os.getenv("ALPHA_VANTAGE_API_KEY")
+    if api_key:
+        return api_key
+    try:
+        api_key = st.secrets.get("ALPHA_VANTAGE_KEY") or st.secrets.get("ALPHA_VANTAGE_API_KEY")
+    except Exception:
+        api_key = None
     if not api_key:
         raise AlphaVantageAPIError(
-            "ALPHA_VANTAGE_API_KEY is not configured. Add it to your .env file."
+            "ALPHA_VANTAGE API key is not configured. Add it to .streamlit/secrets.toml or .env."
         )
     return api_key
 

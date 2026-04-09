@@ -1,5 +1,6 @@
 .env
 macro_pulse.db
+ingestion/alpha_vantage_cache.json
 __pycache__/
 .pytest_cache/
 *.pyc

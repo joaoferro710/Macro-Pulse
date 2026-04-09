@@ -18,6 +18,7 @@ ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
 CACHE_PATH = Path(__file__).resolve().parent / "alpha_vantage_cache.json"
 TIMEOUT_SECONDS = 30
 MIN_SECONDS_BETWEEN_CALLS = 1.2
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 
 class AlphaVantageAPIError(Exception):
@@ -27,7 +28,7 @@ class AlphaVantageAPIError(Exception):
 def _get_api_key() -> str:
     """Return the configured Alpha Vantage API key from environment variables."""
 
-    load_dotenv()
+    load_dotenv(dotenv_path=ENV_PATH)
     api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
     if not api_key:
         raise AlphaVantageAPIError(

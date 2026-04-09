@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import requests
@@ -14,6 +15,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 LOGGER = logging.getLogger(__name__)
 FRED_BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
 TIMEOUT_SECONDS = 30
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 
 class FREDAPIError(Exception):
@@ -23,7 +25,7 @@ class FREDAPIError(Exception):
 def _get_api_key() -> str:
     """Return the configured FRED API key from environment variables."""
 
-    load_dotenv()
+    load_dotenv(dotenv_path=ENV_PATH)
     api_key = os.getenv("FRED_API_KEY")
     if not api_key:
         raise FREDAPIError("FRED_API_KEY is not configured. Add it to your .env file.")

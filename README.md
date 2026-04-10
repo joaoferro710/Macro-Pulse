@@ -1,5 +1,8 @@
 # Macro Pulse
 
+[![PT-BR](https://img.shields.io/badge/lang-pt--br-1f7a1f?style=flat)](README.md)
+[![EN](https://img.shields.io/badge/lang-en-0b57d0?style=flat)](README.en.md)
+
 > Agente de inteligência macroeconômica: coleta indicadores reais, detecta anomalias estatísticas e gera briefings analíticos diários via LLM.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)

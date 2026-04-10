@@ -2,11 +2,23 @@
 
 > Agente de inteligência macroeconômica: coleta indicadores reais, detecta anomalias estatísticas e gera briefings analíticos diários via LLM.
 
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.35+-FF4B4B?style=flat&logo=streamlit&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-MotherDuck-FFF000?style=flat&logo=duckdb&logoColor=black)
+![LangChain](https://img.shields.io/badge/LangChain-Groq-1C3C3C?style=flat&logo=langchain&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat)
+
+---
+
+## Demonstração
+
+![Demonstração do dashboard Macro Pulse](docs/media/Macro-pulse.gif)
+
 ---
 
 ## Visão geral
 
-Acompanhar o cenário macroeconômico exige consolidar dados de múltiplas fontes, identificar o que mudou e transformar sinais dispersos em leitura acionável. Na prática, grande parte desse trabalho ainda é manual, repetitiva e espalhada entre planilhas, portais de dados e anotações.
+O ciclo de juros americano afeta diretamente o fluxo de capital para mercados emergentes. Quando o Fed aperta a política monetária, o diferencial de juros se estreita, o dólar se fortalece e a pressão sobre câmbio e SELIC brasileira aumenta. Monitorar esse mecanismo em tempo real exige consolidar dados de múltiplas fontes, identificar desvios estatísticos relevantes e traduzir tudo isso em linguagem acionável — um trabalho que ainda é amplamente manual.
 
 O Macro Pulse automatiza essa cadeia de ponta a ponta:
 
@@ -18,12 +30,6 @@ O Macro Pulse automatiza essa cadeia de ponta a ponta:
 - **Dashboard interativo** em Streamlit com suporte a PT-BR e EN
 
 O projeto foi desenhado como portfólio profissional, com código organizado, fluxo reproduzível e estrutura próxima de um ambiente de produção.
-
----
-
-## Demonstração
-
-![Demonstração do dashboard Macro Pulse](docs/media/Macro-pulse.gif)
 
 ---
 
@@ -175,6 +181,21 @@ A combinação com MotherDuck cobre deploy simples, custo zero e persistência e
 
 ---
 
+## Testes
+
+| Suite | Cobertura |
+|---|---|
+| `test_ingestion.py` | Clientes FRED, BCB e Alpha Vantage; upsert e deduplicação no DuckDB |
+| `test_analytics.py` | Z-score rolling, CUSUM, detecção de changepoints e classificação de regimes |
+| `test_agent.py` | Geração e persistência de briefings; fallback sem chave de API |
+| `test_dashboard.py` | Smoke test do Streamlit em modo headless |
+
+```bash
+pytest tests/ -v
+```
+
+---
+
 ## Estrutura do repositório
 
 ```
@@ -219,14 +240,14 @@ macro-pulse/
 
 - Python 3.11+
 - Git
-- Token do MotherDuck — ver [Configuração de API keys](#configuração-de-api-keys)
+- Token do MotherDuck — ver [Configuração](#configuração)
 
 ### Passo a passo
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/seu-usuario/macro-pulse.git
-cd macro-pulse
+git clone https://github.com/joaoferro710/Macro-Pulse.git
+cd Macro-Pulse
 
 # 2. Crie e ative o ambiente virtual
 py -3.12 -m venv .venv
@@ -239,7 +260,6 @@ pip install -r requirements.txt
 # 4. Configure as variáveis de ambiente
 copy .env.example .env            # Windows
 # cp .env.example .env            # macOS / Linux
-# Edite o .env com suas chaves (ver seção abaixo)
 
 # 5. Popule o banco com dados históricos (executar uma vez)
 python scripts/seed_motherduck.py
@@ -248,14 +268,21 @@ python scripts/seed_motherduck.py
 streamlit run app.py
 ```
 
+> No Windows, substitua `python` por `.\.venv\Scripts\python` e `streamlit` por `.\.venv\Scripts\streamlit` caso os executáveis não estejam no PATH do ambiente ativo.
+
 ---
 
-## Configuração de API keys
+## Configuração
 
-Preencha o arquivo `.env` com:
+Preencha o arquivo `.env` com suas chaves. Todas as variáveis disponíveis estão documentadas em `.env.example`.
 
 ```env
+# Armazenamento
 MOTHERDUCK_TOKEN=your_motherduck_token_here
+MACRO_PULSE_STORAGE=auto          # auto | motherduck | local
+MACRO_PULSE_LOCAL_DB=macro_pulse.db
+
+# APIs externas
 FRED_API_KEY=your_fred_api_key_here
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
 GROQ_API_KEY=your_groq_api_key_here
@@ -298,8 +325,6 @@ pytest tests/ -v
 ruff check .
 ```
 
-> No Windows, substitua `python` por `.\.venv\Scripts\python` e `streamlit` por `.\.venv\Scripts\streamlit` caso os executáveis não estejam no PATH do ambiente ativo.
-
 ---
 
 ## Deploy no Streamlit Community Cloud
@@ -326,3 +351,15 @@ Resumo dos passos:
 - [ ] Histórico pesquisável de briefings gerados
 - [ ] Backtesting de eventos macro contra as anomalias detectadas
 - [ ] Autenticação simples para controle de acesso ao dashboard
+
+---
+
+## Contribuindo
+
+Sugestões e issues são bem-vindas. Abra uma [issue](https://github.com/joaoferro710/Macro-Pulse/issues) descrevendo o problema ou a melhoria antes de submeter um PR.
+
+---
+
+## Licença
+
+Distribuído sob a licença MIT. Veja [`LICENSE`](LICENSE) para mais detalhes.

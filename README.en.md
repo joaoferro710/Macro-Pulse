@@ -1,7 +1,6 @@
 # Macro Pulse
 
-[![PT-BR](https://img.shields.io/badge/lang-pt--br-1f7a1f?style=flat)](README.md)
-[![EN](https://img.shields.io/badge/lang-en-0b57d0?style=flat)](README.en.md)
+[🇧🇷 Português](README.md) | [🇺🇸 English](README.en.md)
 
 > AI-powered macroeconomic intelligence agent that ingests real-world indicators, detects statistical anomalies, and generates daily analytical briefings through an LLM.
 

@@ -183,6 +183,14 @@ def _styles() -> None:
         .regime-normal,.regime-expansao,.regime-estabilidade{background:rgba(22,163,74,.12);color:#166534}.regime-flat{background:rgba(217,119,6,.14);color:#92400e}.regime-inverted,.regime-contracao,.regime-estagflacao{background:rgba(220,38,38,.12);color:#991b1b}
         .note{background:rgba(245,247,250,.96);border:1px solid rgba(30,41,59,.08);border-radius:18px;padding:1rem;margin-top:.8rem}
         .source-box{background:rgba(255,255,255,.05);border-radius:10px;padding:.6rem .8rem;margin-bottom:.5rem}
+        .brand-mark{width:3.25rem;height:3.25rem;border-radius:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#103b63 0%,#1a7fc1 100%);box-shadow:0 14px 30px rgba(15,76,129,.22);position:relative;overflow:hidden;flex:0 0 auto}
+        .brand-mark::before{content:"";position:absolute;inset:auto auto -.55rem -.25rem;width:2.4rem;height:2.4rem;border-radius:999px;background:rgba(240,192,64,.92)}
+        .brand-mark::after{content:"";position:absolute;inset:.5rem .45rem auto auto;width:1.15rem;height:1.15rem;border-radius:999px;border:2px solid rgba(255,255,255,.7)}
+        .brand-bars{position:relative;display:flex;align-items:flex-end;gap:.22rem;height:1.45rem;z-index:1}
+        .brand-bars span{display:block;width:.34rem;border-radius:999px 999px .2rem .2rem;background:#f8f4ec}
+        .brand-bars span:nth-child(1){height:.62rem;opacity:.8}
+        .brand-bars span:nth-child(2){height:1rem}
+        .brand-bars span:nth-child(3){height:1.38rem}
         ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(15,76,129,.25);border-radius:3px}
         button:focus{outline:none!important;box-shadow:none!important}h2,h3{color:#1e293b!important;letter-spacing:-.01em}hr{border-color:rgba(30,41,59,.08)!important}
         @media (max-width:768px){.macro-section{padding:.75rem;border-radius:14px}.card{min-height:140px}}
@@ -619,7 +627,13 @@ def main() -> None:
     st.markdown(
         """
         <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.25rem;">
-          <span style="font-size:2.2rem;">MP</span>
+          <div class="brand-mark" aria-hidden="true">
+            <div class="brand-bars">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
           <div>
             <div style="font-size:2rem;font-weight:800;line-height:1.1;background:linear-gradient(90deg,#0f4c81,#1a7fc1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Macro Pulse</div>
             <div style="font-size:.85rem;color:#6b7280;letter-spacing:.05em;">Real-time macroeconomic intelligence</div>
